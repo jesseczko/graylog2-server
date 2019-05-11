@@ -40,12 +40,12 @@ import io.netty.handler.ssl.SslProvider;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import org.graylog2.inputs.transports.NettyTransportConfiguration;
+import org.graylog2.inputs.transports.netty.ByteBufMessageAggregationHandler;
 import org.graylog2.inputs.transports.netty.ChannelRegistrationHandler;
 import org.graylog2.inputs.transports.netty.EventLoopGroupFactory;
-import org.graylog2.inputs.transports.netty.ExceptionLoggingChannelHandler;
-import org.graylog2.inputs.transports.netty.ByteBufMessageAggregationHandler;
 import org.graylog2.inputs.transports.netty.RawMessageHandler;
 import org.graylog2.inputs.transports.netty.ServerSocketChannelFactory;
+import org.graylog2.inputs.transports.netty.TcpExceptionLoggingChannelHandler;
 import org.graylog2.plugin.LocalMetricRegistry;
 import org.graylog2.plugin.configuration.Configuration;
 import org.graylog2.plugin.configuration.ConfigurationRequest;
@@ -243,7 +243,7 @@ public abstract class AbstractTcpTransport extends NettyTransport {
             handlers.put("codec-aggregator", () -> new ByteBufMessageAggregationHandler(aggregator, localRegistry));
         }
         handlers.put("rawmessage-handler", () -> new RawMessageHandler(input));
-        handlers.put("exception-logger", () -> new ExceptionLoggingChannelHandler(input, LOG));
+        handlers.put("exception-logger", () -> new TcpExceptionLoggingChannelHandler(input, this.tcpKeepalive, LOG));
 
         return handlers;
     }

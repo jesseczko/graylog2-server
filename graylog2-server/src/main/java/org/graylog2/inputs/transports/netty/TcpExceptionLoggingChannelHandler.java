@@ -17,35 +17,36 @@
 package org.graylog2.inputs.transports.netty;
 
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.handler.timeout.ReadTimeoutException;
 import org.graylog2.plugin.inputs.MessageInput;
 import org.slf4j.Logger;
 
-public class ExceptionLoggingChannelHandler extends ChannelInboundHandlerAdapter {
-    protected final MessageInput input;
-    protected final Logger logger;
+public class TcpExceptionLoggingChannelHandler extends ExceptionLoggingChannelHandler {
+    private final boolean isKeepAliveEnabled;
 
-    public ExceptionLoggingChannelHandler(MessageInput input, Logger logger) {
-        this.input = input;
-        this.logger = logger;
+    public TcpExceptionLoggingChannelHandler(MessageInput input, boolean isKeepAliveEnabled, Logger logger) {
+        super(input, logger);
+        this.isKeepAliveEnabled = isKeepAliveEnabled;
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        if (logger.isTraceEnabled() && "Connection reset by peer".equals(cause.getMessage())) {
-            logger.trace("{} in Input [{}/{}] (channel {})",
-                    cause.getMessage(),
-                    input.getName(),
-                    input.getId(),
-                    ctx.channel());
-        } else {
-            logger.error("Error in Input [{}/{}] (channel {}) (cause {})",
-                    input.getName(),
-                    input.getId(),
-                    ctx.channel(),
-                    cause);
-        }
 
-        ctx.close();
+        boolean isAKeepAliveTimeout =
+                this.isKeepAliveEnabled && cause instanceof ReadTimeoutException;
+
+        if(isAKeepAliveTimeout){
+
+            if(logger.isTraceEnabled()){
+                logger.trace("KeepAlive timed out in Input [{}/{}] (channel {})",
+                        input.getName(),
+                        input.getId(),
+                        ctx.channel());
+            }
+
+            ctx.close();
+        } else {
+            super.exceptionCaught(ctx, cause);
+        }
     }
 }
